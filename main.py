@@ -167,7 +167,28 @@ def run_demo(model, env, model_type: str = 'sb3', render_mode: str = 'human'):
         model_type: 'sb3' or 'reinforce'
         render_mode: Rendering mode ('human', 'rgb_array', 'ansi')
     """
-    obs, info = env.reset()
+    # Define action names
+    ACTION_NAMES = [
+        "Send to Doctor (Severe)",
+        "Send to Nurse (Moderate)", 
+        "Remote Advice (Mild)",
+        "Escalate Priority (Critical)",
+        "Defer Patient",
+        "Idle/Wait",
+        "Open Exam Room",
+        "Close Exam Room"
+    ]
+    
+    # Check if env is VecEnv
+    is_vec = hasattr(env, 'num_envs')
+    
+    obs = env.reset()
+    if is_vec:
+        obs = obs[0] if isinstance(obs, tuple) else obs
+        info = {}
+    else:
+        obs, info = obs if isinstance(obs, tuple) else (obs, {})
+    
     done = False
     episode_reward = 0.0
     step_count = 0
@@ -177,26 +198,35 @@ def run_demo(model, env, model_type: str = 'sb3', render_mode: str = 'human'):
     print("="*60 + "\n")
 
     while not done:
-        # Render if in human mode
-        if render_mode == 'ansi':
-            print(env._render_ansi())
-
         # Get action from model
         if model_type == 'sb3':
             action, _ = model.predict(obs, deterministic=True)
         else:  # REINFORCE
             action, _ = model.policy.get_action(obs, deterministic=True)
 
-        # Print action
-        action_name = env.ACTION_NAMES[action]
-        correct_action = info.get('correct_action', -1)
-        correct_name = env.ACTION_NAMES[correct_action] if correct_action >= 0 else "N/A"
+        # Handle VecEnv action format (convert to scalar)
+        if isinstance(action, np.ndarray):
+            action = int(action.item()) if action.size == 1 else int(action[0])
+        else:
+            action = int(action)
+
+        # Print action with context
+        action_name = ACTION_NAMES[action]
+        correct_action = info.get('correct_action', -1) if info else -1
+        correct_name = ACTION_NAMES[correct_action] if correct_action >= 0 and correct_action < len(ACTION_NAMES) else "N/A"
 
         print(f"Step {step_count + 1}: Action = {action_name} | Optimal = {correct_name}")
 
         # Step environment
-        obs, reward, terminated, truncated, info = env.step(action)
-        done = terminated or truncated
+        if is_vec:
+            obs, reward, done_flag, info = env.step([action])
+            obs = obs[0] if hasattr(obs, '__getitem__') else obs
+            reward = float(reward[0]) if hasattr(reward, '__getitem__') else float(reward)
+            done = bool(done_flag[0]) if hasattr(done_flag, '__getitem__') else bool(done_flag)
+            info = info[0] if hasattr(info, '__getitem__') and len(info) > 0 else {}
+        else:
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
 
         episode_reward += reward
         step_count += 1
@@ -221,22 +251,37 @@ def run_demo(model, env, model_type: str = 'sb3', render_mode: str = 'human'):
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Run best-performing RL model for Clinic Triage"
+        description="Dermatology Clinic Triage - Best Performing RL Model (PPO)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run with defaults (PPO model, 10 eval episodes)
+  python main.py
+  
+  # Run with GUI demo and terminal verbose
+  python main.py --run_demo --render_mode ansi
+  
+  # Generate video
+  python main.py --save_video demos/my_demo.mp4
+  
+  # Full demo with GUI + video
+  python main.py --run_demo --save_video demos/full_demo.mp4
+        """
     )
 
     parser.add_argument(
         '--model_type',
         type=str,
-        required=True,
+        default='ppo',
         choices=['dqn', 'ppo', 'a2c', 'reinforce'],
-        help='Type of model to load'
+        help='Type of model to load (default: ppo - best performing model)'
     )
 
     parser.add_argument(
         '--model_path',
         type=str,
-        required=True,
-        help='Path to saved model file'
+        default='models/ppo/ppo_short_horizon_sweep.zip',
+        help='Path to saved model file (default: best PPO model)'
     )
 
     parser.add_argument(
@@ -281,12 +326,23 @@ def main():
         print(f"Error: Model file not found: {args.model_path}")
         sys.exit(1)
 
+    # Print banner
+    print("\n" + "="*70)
+    print("DERMATOLOGY CLINIC TRIAGE - REINFORCEMENT LEARNING SYSTEM")
+    print("="*70)
+    print(f"Model Type: {args.model_type.upper()}")
+    print(f"Model Path: {args.model_path}")
+    print(f"Evaluation Episodes: {args.num_eval_episodes}")
+    print(f"Random Seed: {args.seed}")
+    print("="*70 + "\n")
+
     # Create environment
-    print(f"Creating environment with seed {args.seed}...")
+    print(f"[1/3] Creating environment with seed {args.seed}...")
     env = ClinicEnv(seed=args.seed, max_steps=500)
+    print("      ✓ Environment created successfully")
 
     # Load model
-    print(f"Loading {args.model_type.upper()} model from {args.model_path}...")
+    print(f"\n[2/3] Loading {args.model_type.upper()} model from {args.model_path}...")
 
     if args.model_type == 'reinforce':
         model = load_reinforce_model(args.model_path, env)
@@ -296,14 +352,15 @@ def main():
         model, eval_env = load_sb3_model(args.model_type, args.model_path, env)
         model_framework = 'sb3'
 
-    print("Model loaded successfully!\n")
+    print("      ✓ Model loaded successfully")
 
     # Run demo if requested
     if args.run_demo:
-        run_demo(model, env, model_type=model_framework, render_mode=args.render_mode)
+        run_demo(model, eval_env, model_type=model_framework, render_mode=args.render_mode)
 
     # Evaluate model
-    print(f"Evaluating model over {args.num_eval_episodes} episodes...")
+    print(f"\n[3/3] Evaluating model over {args.num_eval_episodes} episodes...")
+    print("      (This may take a moment...)")
     eval_results = evaluate_model(
         model, eval_env,
         num_episodes=args.num_eval_episodes,
@@ -337,7 +394,14 @@ def main():
         )
 
     env.close()
-    print("Done!")
+    
+    print("\n" + "="*70)
+    print("✅ EXECUTION COMPLETE")
+    print("="*70)
+    print("\nFor more information, see:")
+    print("  - REPORT.md: Full project report with results and analysis")
+    print("  - README.md: Project documentation and usage guide")
+    print("="*70 + "\n")
 
 
 if __name__ == "__main__":
