@@ -36,6 +36,14 @@ class ClinicEnv(gym.Env):
         self.current_patient = None
         self.total_wait = 0.0
         self.last_render = None
+        
+        # Episode statistics tracking
+        self.episode_stats = {
+            "correct_triages": 0,
+            "incorrect_triages": 0,
+            "total_patients": 0,
+            "total_reward": 0.0
+        }
 
         # reward tuning defaults
         self.wrong_penalty_base = -2.0
@@ -94,6 +102,14 @@ class ClinicEnv(gym.Env):
         self.current_patient = None
         self.total_wait = 0.0
         self._maybe_spawn_next()
+        
+        # Reset episode statistics
+        self.episode_stats = {
+            "correct_triages": 0,
+            "incorrect_triages": 0,
+            "total_patients": 0,
+            "total_reward": 0.0
+        }
 
     def reset(self, seed=None, options=None):
         if seed is not None:
@@ -132,6 +148,7 @@ class ClinicEnv(gym.Env):
 
         # triage reward / penalty
         if action == correct_action:
+            self.episode_stats["correct_triages"] += 1
             if patient["severity"] == 0:
                 reward += 1.0
             elif patient["severity"] == 1:
@@ -141,8 +158,13 @@ class ClinicEnv(gym.Env):
             else:
                 reward += 3.0 if patient["wait_time"] < self.critical_fast_threshold else 2.0
         else:
+            self.episode_stats["incorrect_triages"] += 1
             mult = self.severity_multiplier.get(patient["severity"], 1.0)
             reward += self.wrong_penalty_base * mult
+        
+        # Track total patients processed (only for triage actions 0-3)
+        if action in [0, 1, 2, 3]:
+            self.episode_stats["total_patients"] += 1
 
         # action effects
         if action == 6:
@@ -168,6 +190,9 @@ class ClinicEnv(gym.Env):
 
         # clip reward
         reward = float(np.clip(reward, -6.0, 6.0))
+        
+        # Update total reward
+        self.episode_stats["total_reward"] += reward
 
         # spawn next patient
         self._maybe_spawn_next()
@@ -183,6 +208,7 @@ class ClinicEnv(gym.Env):
         info["num_open_rooms"] = int(self.num_open_rooms)
         info["queue_length"] = len(self.queue)
         info["triage_reward_component"] = float(reward)
+        info["episode_stats"] = self.episode_stats.copy()
 
         # Gym API: step must return (obs, reward, terminated, truncated, info)
         return obs, reward, terminated, truncated, info

@@ -1,0 +1,18 @@
+# Python caches / bytecode
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+
+# IDE / tooling
+.env
+.vscode/
+.idea/
+
+# Misc
+*.log
+*.tmp
+*.bak
+

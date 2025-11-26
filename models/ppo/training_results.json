@@ -1,0 +1,32 @@
+{
+  "config": {
+    "id": "ppo_short_horizon",
+    "description": "Frequent updates (experimental)",
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "n_steps": 512,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5
+  },
+  "seeds": [
+    {
+      "seed": 42,
+      "total_timesteps": 100000,
+      "final_mean_reward": 683.91,
+      "final_std_reward": 11.95,
+      "final_mean_triage_accuracy": 99.6,
+      "final_std_triage_accuracy": 0.5
+    }
+  ],
+  "aggregate": {
+    "mean_final_reward": 683.91,
+    "std_final_reward": 11.95,
+    "mean_final_accuracy": 99.6,
+    "std_final_accuracy": 0.5
+  }
+}

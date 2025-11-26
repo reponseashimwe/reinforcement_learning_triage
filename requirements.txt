@@ -1,48 +1,18 @@
-# Dermatology Clinic Triage - Reinforcement Learning
-# Requirements file for project dependencies
-
-# Core RL Libraries
-gymnasium==0.29.1
-stable-baselines3==2.2.1
-sb3-contrib==2.2.1
-
-# Deep Learning
-torch==2.1.2
-torchvision==0.16.2
-
-# Numerical & Data Processing
-numpy==1.26.4  # Updated for torch 2.1.2 compatibility
-pandas==2.1.4
-scipy==1.11.4
-
-# Visualization
-matplotlib==3.8.2
-seaborn==0.13.0
-pygame==2.5.2
-imageio==2.33.1
-imageio-ffmpeg==0.4.9
-
-# Progress Bars & Logging
-tqdm==4.66.1
-tensorboard==2.15.1
-
-# Jupyter Support (for local development)
-jupyter==1.0.0
-ipykernel==6.27.1
-ipywidgets==8.1.1
-
-# Utilities
-cloudpickle==3.0.0
-pillow==10.1.0
-
-# For Google Colab compatibility
-# (these are pre-installed in Colab but listed for completeness)
-# google-colab
-# pydrive
-
-# Development Tools
-black==23.12.1
-flake8==7.0.0
-
-# Testing
-pytest==7.4.3
+gymnasium
+stable-baselines3
+sb3-contrib
+torch
+torchvision
+numpy==1.26.4
+pandas
+scipy
+matplotlib
+seaborn
+pygame
+imageio
+imageio-ffmpeg
+tqdm
+tensorboard
+ipykernel
+ipywidgets
+pillow

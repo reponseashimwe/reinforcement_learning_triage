@@ -1,0 +1,5 @@
+Algorithm,Config ID,Mean Reward,Std Reward,Mean Accuracy (%),Std Accuracy (%),Learning Rate
+DQN,dqn_fast_target_update,649.90,14.02,32.3,2.1,0.0003
+PPO,ppo_short_horizon,683.91,11.95,99.6,0.5,0.0003
+A2C,a2c_longer_rollout,501.03,18.45,95.0,1.2,0.0007
+REINFORCE,reinforce_no_baseline,697.20,25.34,40.7,3.2,0.0001
