@@ -1,0 +1,33 @@
+{
+  "config": {
+    "id": "dqn_fast_target_update",
+    "description": "More frequent target network updates",
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "buffer_size": 50000,
+    "batch_size": 64,
+    "exploration_fraction": 0.6,
+    "exploration_initial_eps": 1.0,
+    "exploration_final_eps": 0.05,
+    "target_update_interval": 500,
+    "learning_starts": 500,
+    "train_freq": 2,
+    "gradient_steps": 2
+  },
+  "seeds": [
+    {
+      "seed": 42,
+      "total_timesteps": 100000,
+      "final_mean_reward": 649.9,
+      "final_std_reward": 14.02,
+      "final_mean_triage_accuracy": 32.31,
+      "final_std_triage_accuracy": 2.15
+    }
+  ],
+  "aggregate": {
+    "mean_final_reward": 649.9,
+    "std_final_reward": 14.02,
+    "mean_final_accuracy": 32.31,
+    "std_final_accuracy": 2.15
+  }
+}

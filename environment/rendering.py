@@ -357,31 +357,23 @@ def render_episode_to_video(
             # Get action from policy
             action = policy_func(obs)
 
-            # Create state dict for renderer
+            # Step environment
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+            step += 1
+
+            # Create state dict for renderer with UPDATED info
             state_dict = {
                 "current_severity": info.get("current_severity", 0),
                 "queue_length": info.get("queue_length", 0),
                 "num_open_rooms": info.get("num_open_rooms", 1),
                 "correct_action": info.get("correct_action", 0),
                 "episode_stats": info.get("episode_stats", {}),
-                "fever_flag": obs[2],
-                "infection_flag": obs[3]
+                "fever_flag": obs[2] if len(obs) > 2 else 0.0,
+                "infection_flag": obs[3] if len(obs) > 3 else 0.0
             }
 
-            # Render frame
-            frame = renderer.render(state_dict, action, 0.0)
-            writer.append_data(frame)
-
-            # Step environment
-            obs, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
-            step += 1
-
-            # Update state with reward
-            state_dict["episode_stats"]["total_reward"] = \
-                info.get("episode_stats", {}).get("total_reward", 0.0)
-
-            # Render again with reward
+            # Render frame AFTER step with actual data
             frame = renderer.render(state_dict, action, reward)
             writer.append_data(frame)
 

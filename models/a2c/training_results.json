@@ -1,0 +1,30 @@
+{
+  "config": {
+    "id": "a2c_longer_rollout",
+    "description": "Longer rollouts for better credit assignment",
+    "learning_rate": 0.0007,
+    "gamma": 0.99,
+    "n_steps": 20,
+    "gae_lambda": 1.0,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "normalize_advantage": false
+  },
+  "seeds": [
+    {
+      "seed": 42,
+      "total_timesteps": 100000,
+      "final_mean_reward": 501.03,
+      "final_std_reward": 18.45,
+      "final_mean_triage_accuracy": 94.99,
+      "final_std_triage_accuracy": 1.2
+    }
+  ],
+  "aggregate": {
+    "mean_final_reward": 501.03,
+    "std_final_reward": 18.45,
+    "mean_final_accuracy": 94.99,
+    "std_final_accuracy": 1.2
+  }
+}

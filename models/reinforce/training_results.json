@@ -1,0 +1,31 @@
+{
+  "config": {
+    "id": "reinforce_no_baseline",
+    "description": "No baseline for comparison",
+    "learning_rate": 0.0001,
+    "gamma": 0.99,
+    "hidden_dims": [
+      256,
+      256
+    ],
+    "use_baseline": false,
+    "max_grad_norm": 0.5,
+    "entropy_coef": 0.01
+  },
+  "seeds": [
+    {
+      "seed": 42,
+      "num_episodes": 2000,
+      "final_mean_reward": 697.2,
+      "final_std_reward": 25.34,
+      "final_mean_triage_accuracy": 40.74,
+      "final_std_triage_accuracy": 3.2
+    }
+  ],
+  "aggregate": {
+    "mean_final_reward": 697.2,
+    "std_final_reward": 25.34,
+    "mean_final_accuracy": 40.74,
+    "std_final_accuracy": 3.2
+  }
+}
