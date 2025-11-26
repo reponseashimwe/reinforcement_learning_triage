@@ -123,8 +123,8 @@ def train_ppo_config(config, total_timesteps=50000, seed=42, project_dir=None, v
     venv.training = False
     eval_results = evaluate_agent(model, venv, num_episodes=20)
 
-    # Ensure EXACTLY two items are returned
-    return model, eval_results
+    # Return model, eval_results, AND venv (for saving normalization stats)
+    return model, eval_results, venv
 
 
 def train_ppo(
@@ -155,7 +155,7 @@ def train_ppo(
     
     # Train using the notebook's function
     start_time = time.time()
-    model, eval_results = train_ppo_config(
+    model, eval_results, venv = train_ppo_config(
         config,
         total_timesteps=total_timesteps,
         seed=seed,
@@ -164,10 +164,15 @@ def train_ppo(
     )
     training_time = time.time() - start_time
     
-    # Save model
+    # Save model AND VecNormalize stats (CRITICAL!)
     os.makedirs(output_dir, exist_ok=True)
     model_path = os.path.join(output_dir, f"ppo_seed{seed}.zip")
     model.save(model_path)
+    
+    # Save VecNormalize statistics
+    vecnorm_path = os.path.join(output_dir, f"ppo_seed{seed}_vecnormalize.pkl")
+    venv.save(vecnorm_path)
+    print(f"✓ Saved VecNormalize stats: {vecnorm_path}")
     
     # Compile results
     results = {

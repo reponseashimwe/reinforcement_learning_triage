@@ -21,6 +21,7 @@ sys.path.insert(0, str(project_root))
 
 from environment.custom_env import ClinicEnv
 from environment.rendering import render_episode_to_video
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 
 def load_sb3_model(model_type: str, model_path: str, env):
@@ -33,21 +34,39 @@ def load_sb3_model(model_type: str, model_path: str, env):
         env: Environment instance
 
     Returns:
-        Loaded model
+        Loaded model (and VecEnv if PPO with normalization)
     """
     if model_type.lower() == 'dqn':
         from sb3_contrib import DQN
         model = DQN.load(model_path, env=env)
+        return model, env
     elif model_type.lower() == 'ppo':
         from stable_baselines3 import PPO
-        model = PPO.load(model_path, env=env)
+        
+        # Check if VecNormalize stats exist
+        vecnormalize_path = model_path.replace('.zip', '_vecnormalize.pkl')
+        if os.path.exists(vecnormalize_path):
+            print(f"  Loading VecNormalize stats from {vecnormalize_path}")
+            # Create vectorized environment
+            venv = DummyVecEnv([lambda: env])
+            venv = VecNormalize.load(vecnormalize_path, venv)
+            venv.training = False  # Disable training mode
+            venv.norm_reward = False
+            
+            model = PPO.load(model_path)
+            model.set_env(venv)
+            return model, venv
+        else:
+            print("  Warning: VecNormalize stats not found, using raw environment")
+            model = PPO.load(model_path, env=env)
+            return model, env
     elif model_type.lower() == 'a2c':
         from stable_baselines3 import A2C
         model = A2C.load(model_path, env=env)
+        return model, env
     else:
         raise ValueError(f"Unknown SB3 model type: {model_type}")
 
-    return model
 
 
 def load_reinforce_model(model_path: str, env):
@@ -75,19 +94,20 @@ def evaluate_model(model, env, num_episodes: int = 10, model_type: str = 'sb3'):
 
     Args:
         model: Trained model
-        env: Environment instance
+        env: Environment instance (can be VecEnv or regular env)
         num_episodes: Number of episodes to evaluate
         model_type: 'sb3' or 'reinforce'
 
     Returns:
         Dictionary of evaluation metrics
     """
+    is_vec = hasattr(env, 'num_envs')
     episode_rewards = []
     episode_lengths = []
     triage_accuracies = []
 
     for episode in range(num_episodes):
-        obs, info = env.reset()
+        obs = env.reset()
         done = False
         episode_reward = 0.0
         episode_length = 0
@@ -102,8 +122,15 @@ def evaluate_model(model, env, num_episodes: int = 10, model_type: str = 'sb3'):
                 action, _ = model.policy.get_action(obs, deterministic=True)
 
             # Step environment
-            obs, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
+            if is_vec:
+                obs, reward, done, info = env.step(action)
+                reward = float(reward[0])
+                done = bool(done[0])
+                info = info[0]
+                action = int(np.array(action).reshape(-1)[0])
+            else:
+                obs, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
 
             episode_reward += reward
             episode_length += 1
@@ -263,9 +290,10 @@ def main():
 
     if args.model_type == 'reinforce':
         model = load_reinforce_model(args.model_path, env)
+        eval_env = env
         model_framework = 'reinforce'
     else:
-        model = load_sb3_model(args.model_type, args.model_path, env)
+        model, eval_env = load_sb3_model(args.model_type, args.model_path, env)
         model_framework = 'sb3'
 
     print("Model loaded successfully!\n")
@@ -277,7 +305,7 @@ def main():
     # Evaluate model
     print(f"Evaluating model over {args.num_eval_episodes} episodes...")
     eval_results = evaluate_model(
-        model, env,
+        model, eval_env,
         num_episodes=args.num_eval_episodes,
         model_type=model_framework
     )
